@@ -65,6 +65,9 @@ namespace {
     auto op = ex::connect(std::move(snd1), expect_value_receiver_ex{res});
     ex::start(op);
     CHECK(res == 0.0);
+    // When all is scheduled on the scheduler.
+    sched.start_next();
+    // then should executed here
     sched.start_next();
     CHECK(res == 3.1415);
   }

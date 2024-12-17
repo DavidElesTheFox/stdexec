@@ -439,7 +439,6 @@ namespace stdexec {
           _Sender...)>;
 
       template <scheduler _Scheduler, sender... _Senders>
-        requires __domain::__has_common_domain<_Senders...>
       auto
         operator()(_Scheduler&& __sched, _Senders&&... __sndrs) const -> __well_formed_sender auto {
         using _Env = __t<__schfr::__environ<__id<__decay_t<_Scheduler>>>>;
@@ -458,9 +457,16 @@ namespace stdexec {
         return __sexpr_apply(
           static_cast<_Sender&&>(__sndr),
           [&]<class _Data, class... _Child>(__ignore, _Data&& __data, _Child&&... __child) {
-            return continues_on(
-              when_all_t()(static_cast<_Child&&>(__child)...),
-              get_completion_scheduler<set_value_t>(__data));
+            if constexpr(sizeof...(_Child) == 0) {
+              return continues_on(
+                when_all_t()(static_cast<_Child&&>(__child)...),
+                get_completion_scheduler<set_value_t>(__data));
+
+            } else {
+              auto __scheduler = get_completion_scheduler<set_value_t>(__data);
+              return
+                when_all_t()(continues_on(static_cast<_Child&&>(__child), __scheduler)...);
+            }
           });
       }
     };
@@ -489,7 +495,6 @@ namespace stdexec {
           _Sender...)>;
 
       template <scheduler _Scheduler, sender... _Senders>
-        requires __domain::__has_common_domain<_Senders...>
       auto
         operator()(_Scheduler&& __sched, _Senders&&... __sndrs) const -> __well_formed_sender auto {
         using _Env = __t<__schfr::__environ<__id<__decay_t<_Scheduler>>>>;
