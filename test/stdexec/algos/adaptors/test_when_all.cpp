@@ -441,6 +441,84 @@ namespace {
       wait_for_value(std::move(snd), std::string{"hello world"});
     }
   }
+  TEST_CASE("when_all works with multiple custom domains", "[adaptors][transfer_when_all]") {
+    constexpr auto hello_1 = [] {
+      return ex::just(std::string{"hello world 1"});
+    };
+    constexpr auto hello_2 = [] {
+      return ex::just(std::string{"hello world 2"});
+    };
+    constexpr auto hello_3 = [] {
+      return ex::just(std::string{"hello world 3"});
+    };
+    using domain_1 = basic_domain<ex::when_all_t, customize::none, hello_1>;
+    using domain_2 = basic_domain<ex::when_all_t, customize::none, hello_2>;
+    using domain_3 = basic_domain<ex::when_all_t, customize::none, hello_3>;
+
+    using scheduler_1 = basic_inline_scheduler<domain_1>;
+    using scheduler_2 = basic_inline_scheduler<domain_2>;
+    using scheduler_3 = basic_inline_scheduler<domain_3>;
+
+    SECTION("sender has correct domain with when_all and manual continues") {
+
+      auto snd = ex::when_all(
+        ex::transfer_just(scheduler_1(), 3) | ex::continues_on(scheduler_2{}),
+        ex::transfer_just(scheduler_3(), 0.1415) | ex::continues_on(scheduler_2{})
+      );
+      static_assert(ex::sender_expr_for<decltype(snd), ex::when_all_t>);
+      [[maybe_unused]]
+      domain_2 dom = ex::get_domain(ex::get_env(snd));
+    }
+    SECTION("sender has correct domain with when_all and auto continues") {
+
+      auto snd = ex::transfer_when_all(scheduler_2{},
+        ex::transfer_just(scheduler_1{}, 3),
+        ex::transfer_just(scheduler_3{}, 0.1415)
+      );
+      static_assert(ex::sender_expr_for<decltype(snd), ex::transfer_when_all_t>);
+      [[maybe_unused]]
+      domain_2 dom = ex::get_domain(ex::get_env(snd));
+    }
+  }
+  TEST_CASE("when_all_with_variant works with multiple custom domains", "[adaptors][transfer_when_all_with_variant]") {
+    constexpr auto hello_1 = [] {
+      return ex::just(std::string{"hello world 1"});
+    };
+    constexpr auto hello_2 = [] {
+      return ex::just(std::string{"hello world 2"});
+    };
+    constexpr auto hello_3 = [] {
+      return ex::just(std::string{"hello world 3"});
+    };
+    using domain_1 = basic_domain<ex::when_all_t, customize::none, hello_1>;
+    using domain_2 = basic_domain<ex::when_all_t, customize::none, hello_2>;
+    using domain_3 = basic_domain<ex::when_all_t, customize::none, hello_3>;
+
+    using scheduler_1 = basic_inline_scheduler<domain_1>;
+    using scheduler_2 = basic_inline_scheduler<domain_2>;
+    using scheduler_3 = basic_inline_scheduler<domain_3>;
+
+    SECTION("sender has correct domain with when_all and manual continues") {
+
+      auto snd = ex::when_all_with_variant(
+        ex::transfer_just(scheduler_1(), 3) | ex::continues_on(scheduler_2{}),
+        ex::transfer_just(scheduler_3(), 0.1415) | ex::continues_on(scheduler_2{})
+      );
+      static_assert(ex::sender_expr_for<decltype(snd), ex::when_all_with_variant_t>);
+      [[maybe_unused]]
+      domain_2 dom = ex::get_domain(ex::get_env(snd));
+    }
+    SECTION("sender has correct domain with when_all and auto continues") {
+
+      auto snd = ex::transfer_when_all_with_variant(scheduler_2{},
+        ex::transfer_just(scheduler_1{}, 3),
+        ex::transfer_just(scheduler_3{}, 0.1415)
+      );
+      static_assert(ex::sender_expr_for<decltype(snd), ex::transfer_when_all_with_variant_t>);
+      [[maybe_unused]]
+      domain_2 dom = ex::get_domain(ex::get_env(snd));
+    }
+  }
 
   TEST_CASE("when_all_with_variant works with custom domain", "[adaptors][when_all]") {
     constexpr auto hello = [] {
